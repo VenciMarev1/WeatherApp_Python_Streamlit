@@ -47,4 +47,4 @@ else:
 '''
 
 print(data)
-st.dataframe(data)
+st.dataframe(get_weather_data())
