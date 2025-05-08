@@ -246,7 +246,7 @@ with col2:
             scene.add(directionalLight);
 
             // Marker for selected city
-            const markerGeometry = new THREE.SphereGeometry(0.03, 3, 3);
+            const markerGeometry = new THREE.SphereGeometry(0.03, 16, 16);
             const markerMaterial = new THREE.MeshBasicMaterial({{ color: 0xff0000 }});
             const marker = new THREE.Mesh(markerGeometry, markerMaterial);
 
