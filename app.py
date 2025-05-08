@@ -10,15 +10,20 @@ try:
     response.raise_for_status()
     data = response.json()
 
-    city_name = data['name']
+    city_name = st.text_input("Enter City Name")
     temp_kelvin = data['main']['temp']
     temp_celsius = temp_kelvin - 273.15
+
 
     st.title("Weather App")
     st.text(f"City: {city_name}")
     st.text(f"Temperature: {temp_celsius:.2f}°C")
-    print(f"City: {city_name}")
+
+    print(f"\nCity: {city_name}")
     print(f"Temperature: {temp_celsius:.2f}°C")
+
+
+
 except requests.exceptions.RequestException as e:
     print(f"Request failed: {e}")
 except (KeyError, ValueError) as e:
