@@ -18,11 +18,13 @@ def get_weather_data():
         date = datetime.fromtimestamp(entry["dt"]).date()
         temp = entry["main"]["temp"]
         rain = entry.get("rain", {}).get("3h", 0)
+        city = entry["weather"][0]["description"]
         humidity = entry["main"]["humidity"]
         weather.append({
             "date": date,
             "temp": temp,
             "rain": rain,
+            "city": city,
             "humidity": humidity
         })
 
