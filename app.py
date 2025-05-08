@@ -82,15 +82,15 @@ with col2:
     <meta charset="utf-8">
     <title>3D Earth Globe</title>
     <style>
-        body {margin: 0; }
-        #globe-container {
+        body {{margin: 0; }}
+        #globe-container {{
     width: 100%;
             height: 600px;
             overflow: hidden;
             position: relative;
-        }
-        canvas {display: block; }
-        #info {
+        }}
+        canvas {{display: block; }}
+        #info {{
     position: absolute;
             top: 10px;
             width: 100%;
@@ -100,7 +100,7 @@ with col2:
             pointer-events: none;
             z-index: 100;
             text-shadow: 1px 1px 2px black;
-        }
+        }}
     </style>
 </head>
 <body>
