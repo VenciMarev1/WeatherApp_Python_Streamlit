@@ -7,7 +7,7 @@ st.set_page_config(page_title="Weather Prognosis", layout="centered")
 st.title("🌤️ Live Weather Prognosis")
 
 # Input for city and API key
-city = st.text_input("Enter a city name:", "London")
+city = st.text_input("Enter a city name:", "Sofia")
 api_key = st.text_input("Enter your OpenWeatherMap API key:", type="password")
 
 if city and api_key:
