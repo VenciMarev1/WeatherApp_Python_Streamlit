@@ -20,7 +20,7 @@ Search for a city by name to locate it on the globe.
 
 # API keys (in production, use st.secrets)
 OPENWEATHER_API_KEY = "5dc93fe1be4655d1693091ba3dc6c853"
-USER_AGENT = "CityLocatorGlobe/1.0 (your-contact@email.com)"
+
 
 
 def get_city_coordinates(city_name):
@@ -31,12 +31,9 @@ def get_city_coordinates(city_name):
         'format': 'json',
         'limit': 1
     }
-    headers = {
-        'User-Agent': USER_AGENT
-    }
 
     try:
-        response = requests.get(base_url, params=params, headers=headers)
+        response = requests.get(base_url, params=params)
         response.raise_for_status()
         data = response.json()
 
