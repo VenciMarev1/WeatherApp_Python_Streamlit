@@ -8,7 +8,7 @@ st.title("🌤️ Live Weather Prognosis")
 
 # Input for city and API key
 city = st.text_input("Enter a city name:", "Sofia")
-api_key = st.text_input("Enter your OpenWeatherMap API key:", type="password")
+api_key = "5dc93fe1be4655d1693091ba3dc6c853"
 
 if city and api_key:
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
