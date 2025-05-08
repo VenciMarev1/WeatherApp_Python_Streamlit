@@ -1,6 +1,25 @@
 import streamlit as st
 import requests
-import matplotlib.pyplot as plt
+from PIL import Image
+from io import BytesIO
+
+# Page setup
+st.set_page_config(page_title="Weather Dashboard 🌦️", layout="wide")
+st.markdown("""
+    <style>
+    .big-font {
+        font-size:30px !important;
+        font-weight: 600;
+    }
+    .metric-card {
+        background-color: #f0f2f6;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # Set up Streamlit page
 st.set_page_config(page_title="Weather Prognosis", layout="centered")
@@ -10,6 +29,8 @@ st.title("🌤️ Live Weather Prognosis")
 city = st.text_input("Enter a city name:", "Sofia")
 api_key = "5dc93fe1be4655d1693091ba3dc6c853"
 
+
+
 if city and api_key:
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
 
@@ -18,35 +39,43 @@ if city and api_key:
         response.raise_for_status()
         data = response.json()
 
-        # Extract weather details
+        # Extract info
         city_name = data['name']
         temp_celsius = data['main']['temp'] - 273.15
+        weather_main = data['weather'][0]['main']
         weather_description = data['weather'][0]['description'].capitalize()
         humidity = data['main']['humidity']
         wind_speed = data['wind']['speed']
         pressure = data['main']['pressure']
         cloudiness = data['clouds']['all']
+        icon_id = data['weather'][0]['icon']
 
-        # Display results
-        st.subheader(f"Weather in {city_name}")
-        weather_data = [
-            ["Temperature (°C)", f"{temp_celsius:.2f}"],
-            ["Weather", weather_description],
-            ["Humidity (%)", humidity],
-            ["Wind Speed (m/s)", wind_speed],
-            ["Pressure (hPa)", pressure],
-            ["Cloudiness (%)", cloudiness]
-        ]
+        # Get weather icon
+        icon_url = f"http://openweathermap.org/img/wn/{icon_id}@2x.png"
+        icon_response = requests.get(icon_url)
+        icon_img = Image.open(BytesIO(icon_response.content))
 
-        # Plot table using matplotlib
-        fig, ax = plt.subplots()
-        ax.axis('off')
-        table = ax.table(cellText=weather_data, colLabels=["Parameter", "Value"],
-                         cellLoc='left', loc='center')
-        table.auto_set_font_size(False)
-        table.set_fontsize(12)
-        table.scale(1.2, 1.2)
-        st.pyplot(fig)
+        # Display
+        col1, col2 = st.columns([1, 2])
+
+        with col1:
+            st.image(icon_img, width=120)
+            st.markdown(f"### {weather_main}")
+            st.caption(weather_description)
+
+        with col2:
+            st.markdown(f"## {city_name}")
+            st.metric("🌡 Temperature", f"{temp_celsius:.2f} °C")
+            st.metric("💧 Humidity", f"{humidity} %")
+            st.metric("🌬 Wind Speed", f"{wind_speed} m/s")
+            st.metric("📈 Pressure", f"{pressure} hPa")
+            st.metric("☁️ Cloudiness", f"{cloudiness} %")
+
+        st.markdown("---")
+
+        # Optional: fancy globe background (animated GIF)
+        st.markdown("#### 🌐 World Weather Vibe")
+        st.image("https://upload.wikimedia.org/wikipedia/commons/1/17/Rotating_earth_%28large%29.gif", use_column_width=True)
 
     except requests.exceptions.RequestException as e:
         st.error(f"Request failed: {e}")
