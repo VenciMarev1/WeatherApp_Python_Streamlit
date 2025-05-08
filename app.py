@@ -245,6 +245,8 @@ def handle_globe_click(lat, lon):
             st.metric("Pressure", f"{pressure} hPa")
             st.caption(f"Coordinates: {lat:.2f}° N, {lon:.2f}° E")
 
+            print(temp_celsius +"\n" + humidity + "\n" + wind_speed + "\n" + pressure)
+
     except Exception as e:
         weather_placeholder.error(f"Error fetching weather data: {str(e)}")
 
