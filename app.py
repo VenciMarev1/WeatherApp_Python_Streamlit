@@ -213,7 +213,7 @@ with col2:
 def show_weather(lat, lon):
     try:
         # Get weather data
-        url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}"
+        url = f"http://api.openweathermap.org/data/2.5/weather?lat=-15.108663477195364&lon=81.91269913146738&appid=5dc93fe1be4655d1693091ba3dc6c853"
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
