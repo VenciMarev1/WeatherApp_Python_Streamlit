@@ -71,7 +71,7 @@ if city and api_key:
 
         # Optional: fancy globe background (animated GIF)
         st.markdown("#### 🌐 World Weather Vibe")
-        st.image("https://upload.wikimedia.org/wikipedia/commons/1/17/Rotating_earth_%28large%29.gif",use_container_width=True)
+        st.image("https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", use_container_width=True)
 
     except requests.exceptions.RequestException as e:
         st.error(f"Request failed: {e}")
