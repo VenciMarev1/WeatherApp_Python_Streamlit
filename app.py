@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from PIL import Image
 from io import BytesIO
+import streamlit.components.v1 as components
 
 # Page setup
 st.set_page_config(page_title="Weather Dashboard 🌦️", layout="wide")
@@ -20,6 +21,62 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
+threejs_html = """
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>3D Earth Globe</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const geometry = new THREE.SphereGeometry(1, 64, 64);
+      const texture = new THREE.TextureLoader().load('https://raw.githubusercontent.com/ajaytripathi2000/3D-Earth-Model-Using-Three.js/main/earthmap1k.jpg');
+      const bumpMap = new THREE.TextureLoader().load('https://raw.githubusercontent.com/ajaytripathi2000/3D-Earth-Model-Using-Three.js/main/earthbump1k.jpg');
+      const material = new THREE.MeshPhongMaterial({
+        map: texture,
+        bumpMap: bumpMap,
+        bumpScale: 0.05
+      });
+      const sphere = new THREE.Mesh(geometry, material);
+      scene.add(sphere);
+
+      const light = new THREE.PointLight(0xffffff, 1);
+      light.position.set(5, 3, 5);
+      scene.add(light);
+
+      camera.position.z = 3;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        sphere.rotation.y += 0.002;
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
+"""
+
 
 # Input for city and API key
 city = st.text_input("Enter a city name:", "Sofia")
@@ -71,7 +128,7 @@ if city and api_key:
 
         # Optional: fancy globe background (animated GIF)
         st.markdown("#### 🌐 World Weather Vibe")
-        st.image("https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", use_container_width=True)
+        components.html(threejs_html, height=600)
 
     except requests.exceptions.RequestException as e:
         st.error(f"Request failed: {e}")
