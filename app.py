@@ -47,3 +47,4 @@ else:
 '''
 
 print(data)
+st.dataframe(data)
