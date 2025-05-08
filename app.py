@@ -4,8 +4,7 @@ from PIL import Image
 from io import BytesIO
 import streamlit.components.v1 as components
 import math
-import json
-from time import sleep
+import time
 
 # Page setup
 st.set_page_config(page_title="Weather Globe 🌍", layout="wide")
@@ -18,9 +17,9 @@ Search for a city by name to locate it on the globe.
 - Weather information will be displayed
 """)
 
-# API keys (in production, use st.secrets)
-OPENWEATHER_API_KEY = "5dc93fe1be4655d1693091ba3dc6c853"
-USER_AGENT = "CityLocatorGlobe/1.0 (vencislavmarev21a@gmail.com)"
+# API keys (use `st.secrets` in production)
+OPENWEATHER_API_KEY = "5dc93fe1be4655d1693091ba3dc6c853"  # Replace with your key
+NOMINATIM_USER_AGENT = "CityLocatorApp/1.0 (vencislavmarev21a@gmail.com)"  # Must be a valid email
 
 
 def get_city_coordinates(city_name):
@@ -32,10 +31,11 @@ def get_city_coordinates(city_name):
         'limit': 1
     }
     headers = {
-        'User-Agent': USER_AGENT
+        'User-Agent': NOMINATIM_USER_AGENT  # Required to avoid 403 error
     }
 
     try:
+        time.sleep(1)  # Respect Nominatim's rate limit (1 request per second)
         response = requests.get(base_url, params=params, headers=headers)
         response.raise_for_status()
         data = response.json()
@@ -49,7 +49,6 @@ def get_city_coordinates(city_name):
         else:
             st.error(f"No coordinates found for {city_name}")
             return None
-
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching coordinates: {str(e)}")
         return None
@@ -69,13 +68,18 @@ def get_weather_data(lat, lon):
         weather_icon = Image.open(BytesIO(requests.get(icon_url).content))
 
         return weather_data, weather_icon
-
     except Exception as e:
         st.error(f"Error fetching weather data: {str(e)}")
         return None, None
 
 
-# Create columns for layout
+# Initialize session state
+if 'city_data' not in st.session_state:
+    st.session_state.city_data = {
+        "London": {"lat": 51.5074, "lon": -0.1278, "display_name": "London, UK"}
+    }
+
+# Layout
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -87,36 +91,37 @@ with col1:
     )
 
     if st.button("Locate") or 'city_input' in st.session_state:
-        with st.spinner(f"Searching for {city_input}..."):
-            city_info = get_city_coordinates(city_input)
-            if city_info:
-                st.session_state.city_data = {
-                    city_input: {
+        if city_input:
+            with st.spinner(f"Searching for {city_input}..."):
+                city_info = get_city_coordinates(city_input)
+
+                if city_info:
+                    st.session_state.city_data[city_input] = {
                         "lat": city_info['lat'],
                         "lon": city_info['lon'],
                         "display_name": city_info['display_name']
                     }
-                }
-                st.session_state.selected_city = city_input
+                    st.session_state.selected_city = city_input
 
-                # Get weather data
-                weather_data, weather_icon = get_weather_data(
-                    city_info['lat'],
-                    city_info['lon']
-                )
+                    # Fetch weather data
+                    weather_data, weather_icon = get_weather_data(
+                        city_info['lat'],
+                        city_info['lon']
+                    )
 
-                if weather_data:
-                    st.session_state.weather_data = weather_data
-                    st.session_state.weather_icon = weather_icon
-                    st.rerun()
+                    if weather_data:
+                        st.session_state.weather_data = weather_data
+                        st.session_state.weather_icon = weather_icon
+                        st.rerun()
 
     # Display weather info if available
     if 'weather_data' in st.session_state and 'selected_city' in st.session_state:
         data = st.session_state.weather_data
-        st.subheader(f"Weather in {st.session_state.selected_city}")
+        city_name = st.session_state.selected_city
+        display_name = st.session_state.city_data[city_name]['display_name']
 
-        if 'display_name' in st.session_state.city_data.get(st.session_state.selected_city, {}):
-            st.caption(st.session_state.city_data[st.session_state.selected_city]['display_name'])
+        st.subheader(f"Weather in {city_name}")
+        st.caption(display_name)
 
         col_a, col_b = st.columns([1, 2])
         with col_a:
@@ -134,12 +139,6 @@ with col1:
         st.caption(f"Coordinates: {data['coord']['lat']:.2f}° N, {data['coord']['lon']:.2f}° E")
 
 with col2:
-    # Initialize city_data in session state if not exists
-    if 'city_data' not in st.session_state:
-        st.session_state.city_data = {
-            "London": {"lat": 51.5074, "lon": -0.1278}
-        }
-
     # Get selected city (default to London if none selected)
     selected_city = st.session_state.get('selected_city', "London")
     city_info = st.session_state.city_data.get(selected_city)
@@ -148,11 +147,7 @@ with col2:
         city_lat = city_info["lat"]
         city_lon = city_info["lon"]
 
-        # Convert lat/lon to Three.js coordinates
-        phi = (90 - city_lat) * (math.pi / 180)
-        theta = (city_lon + 180) * (math.pi / 180)
-
-        # HTML/JavaScript for the 3D globe
+        # Simplified Three.js Globe (to avoid CORS issues)
         threejs_html = f"""
 <!DOCTYPE html>
 <html>
@@ -213,58 +208,17 @@ with col2:
             controls.minDistance = 1.5;
             controls.maxDistance = 5;
 
-            // Create Earth
-            const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
+            // Create Earth (using a simple color instead of texture to avoid CORS)
+            const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
             const earthMaterial = new THREE.MeshPhongMaterial({{
-                map: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg'),
-                bumpMap: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg'),
-                bumpScale: 0.05,
-                specularMap: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg'),
-                specular: new THREE.Color('grey'),
+                color: 0x1a66ff,
+                specular: 0x111111,
                 shininess: 5
             }});
             const earth = new THREE.Mesh(earthGeometry, earthMaterial);
             scene.add(earth);
 
-            // Add clouds
-            const cloudGeometry = new THREE.SphereGeometry(1.01, 64, 64);
-            const cloudMaterial = new THREE.MeshPhongMaterial({{
-                map: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png'),
-                transparent: true,
-                opacity: 0.4
-            }});
-            const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
-            scene.add(clouds);
-
-            // Add stars
-            const starGeometry = new THREE.BufferGeometry();
-            const starMaterial = new THREE.PointsMaterial({{
-                color: 0xffffff,
-                size: 0.05
-            }});
-
-            const starVertices = [];
-            for (let i = 0; i < 10000; i++) {{
-                starVertices.push(
-                    (Math.random() - 0.5) * 2000,
-                    (Math.random() - 0.5) * 2000,
-                    (Math.random() - 0.5) * 2000
-                );
-            }}
-
-            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-            const stars = new THREE.Points(starGeometry, starMaterial);
-            scene.add(stars);
-
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0x333333);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(5, 3, 5);
-            scene.add(directionalLight);
-
-            // Marker for selected city
+            // Add marker for selected city
             const markerGeometry = new THREE.SphereGeometry(0.03, 16, 16);
             const markerMaterial = new THREE.MeshBasicMaterial({{ color: 0xff0000 }});
             const marker = new THREE.Mesh(markerGeometry, markerMaterial);
@@ -287,23 +241,21 @@ with col2:
             // Point camera at the marker
             camera.lookAt(marker.position);
 
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x333333);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 3, 5);
+            scene.add(directionalLight);
+
             // Animation loop
             function animate() {{
                 requestAnimationFrame(animate);
                 earth.rotation.y += 0.001;
-                clouds.rotation.y += 0.0015;
                 controls.update();
                 renderer.render(scene, camera);
             }}
-
-            // Handle resize
-            function onWindowResize(){{
-                camera.aspect = container.clientWidth / container.clientHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(container.clientWidth, container.clientHeight);
-            }}
-
-            window.addEventListener('resize', onWindowResize);
 
             animate();
         </script>
@@ -311,5 +263,4 @@ with col2:
 </body>
 </html>
         """
-        # Display the globe
         components.html(threejs_html, height=600)
