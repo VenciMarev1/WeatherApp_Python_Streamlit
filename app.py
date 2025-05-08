@@ -6,76 +6,143 @@ import streamlit.components.v1 as components
 
 # Page setup
 st.set_page_config(page_title="Weather Dashboard 🌦️", layout="wide")
-st.markdown("""
-    <style>
-    .big-font {
-        font-size:30px !important;
-        font-weight: 600;
-    }
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
+st.markdown("""
+This interactive 3D globe is created using Three.js with realistic textures and lighting.
+- Rotates automatically
+- Try zooming in/out with your mouse/trackpad
+- Drag to rotate the view
+""")
+
+# Embed HTML + Three.js Globe
 threejs_html = """
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
+<html>
+<head>
+    <meta charset="utf-8">
     <title>3D Earth Globe</title>
     <style>
-      body { margin: 0; overflow: hidden; }
-      canvas { display: block; }
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-family: Arial, sans-serif;
+            pointer-events: none;
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
+    <div id="info">Drag to rotate • Scroll to zoom</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
     <script>
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
 
-      const geometry = new THREE.SphereGeometry(1, 64, 64);
-      const texture = new THREE.TextureLoader().load('https://raw.githubusercontent.com/ajaytripathi2000/3D-Earth-Model-Using-Three.js/main/earthmap1k.jpg');
-      const bumpMap = new THREE.TextureLoader().load('https://raw.githubusercontent.com/ajaytripathi2000/3D-Earth-Model-Using-Three.js/main/earthbump1k.jpg');
-      const material = new THREE.MeshPhongMaterial({
-        map: texture,
-        bumpMap: bumpMap,
-        bumpScale: 0.05
-      });
-      const sphere = new THREE.Mesh(geometry, material);
-      scene.add(sphere);
+        // Camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 2.5;
 
-      const light = new THREE.PointLight(0xffffff, 1);
-      light.position.set(5, 3, 5);
-      scene.add(light);
-
-      camera.position.z = 3;
-
-      function animate() {
-        requestAnimationFrame(animate);
-        sphere.rotation.y += 0.002;
-        renderer.render(scene, camera);
-      }
-
-      animate();
-
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
+        // Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-      });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // Add orbit controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 1.5;
+        controls.maxDistance = 5;
+
+        // Earth geometry
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+
+        // Load textures
+        const textureLoader = new THREE.TextureLoader();
+        const texture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
+        const bumpMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg');
+        const specularMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg');
+
+        // Earth material
+        const material = new THREE.MeshPhongMaterial({
+            map: texture,
+            bumpMap: bumpMap,
+            bumpScale: 0.05,
+            specularMap: specularMap,
+            specular: new THREE.Color('grey'),
+            shininess: 5
+        });
+
+        // Earth mesh
+        const earth = new THREE.Mesh(geometry, material);
+        scene.add(earth);
+
+        // Clouds
+        const cloudGeometry = new THREE.SphereGeometry(1.01, 64, 64);
+        const cloudMaterial = new THREE.MeshPhongMaterial({
+            map: textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png'),
+            transparent: true,
+            opacity: 0.4
+        });
+        const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+        scene.add(clouds);
+
+        // Stars
+        const starGeometry = new THREE.BufferGeometry();
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.05
+        });
+
+        const starVertices = [];
+        for (let i = 0; i < 10000; i++) {
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = (Math.random() - 0.5) * 2000;
+            starVertices.push(x, y, z);
+        }
+
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x333333);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 3, 5);
+        scene.add(directionalLight);
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            earth.rotation.y += 0.001;
+            clouds.rotation.y += 0.0015;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
     </script>
-  </body>
+</body>
 </html>
 """
+
 
 
 # Input for city and API key
