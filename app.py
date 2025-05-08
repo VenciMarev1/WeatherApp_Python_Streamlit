@@ -5,6 +5,7 @@ from io import BytesIO
 import streamlit.components.v1 as components
 import math
 import json
+from time import sleep
 
 # Page setup
 st.set_page_config(page_title="Weather Globe 🌍", layout="wide")
@@ -17,37 +18,105 @@ Search for a city by name to locate it on the globe.
 - Weather information will be displayed
 """)
 
-# API key (in production, use st.secrets)
-api_key = "5dc93fe1be4655d1693091ba3dc6c853"
+# API keys (in production, use st.secrets)
+OPENWEATHER_API_KEY = "5dc93fe1be4655d1693091ba3dc6c853"
+USER_AGENT = "CityLocatorGlobe/1.0 (your-contact@email.com)"
 
-# Sample city data (in a real app, use a geocoding API)
-city_data = {
-    "New York": {"lat": 40.7128, "lon": -74.0060},
-    "London": {"lat": 51.5074, "lon": -0.1278},
-    "Tokyo": {"lat": 35.6762, "lon": 139.6503},
-    "Sydney": {"lat": -33.8688, "lon": 151.2093},
-    "Paris": {"lat": 48.8566, "lon": 2.3522},
-    "Beijing": {"lat": 39.9042, "lon": 116.4074},
-    "Rio de Janeiro": {"lat": -22.9068, "lon": -43.1729},
-    "Cairo": {"lat": 30.0444, "lon": 31.2357}
-}
+
+def get_city_coordinates(city_name):
+    """Fetch latitude and longitude for a city using Nominatim API"""
+    base_url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        'q': city_name,
+        'format': 'json',
+        'limit': 1
+    }
+    headers = {
+        'User-Agent': USER_AGENT
+    }
+
+    try:
+        response = requests.get(base_url, params=params, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        if data:
+            return {
+                'lat': float(data[0]['lat']),
+                'lon': float(data[0]['lon']),
+                'display_name': data[0]['display_name']
+            }
+        else:
+            st.error(f"No coordinates found for {city_name}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching coordinates: {str(e)}")
+        return None
+
+
+def get_weather_data(lat, lon):
+    """Fetch weather data from OpenWeatherMap"""
+    try:
+        url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}"
+        response = requests.get(url)
+        response.raise_for_status()
+        weather_data = response.json()
+
+        # Get weather icon
+        icon_id = weather_data['weather'][0]['icon']
+        icon_url = f"http://openweathermap.org/img/wn/{icon_id}@2x.png"
+        weather_icon = Image.open(BytesIO(requests.get(icon_url).content))
+
+        return weather_data, weather_icon
+
+    except Exception as e:
+        st.error(f"Error fetching weather data: {str(e)}")
+        return None, None
+
 
 # Create columns for layout
 col1, col2 = st.columns([1, 2])
 
 with col1:
     st.subheader("Search City")
-    city_input = st.selectbox(
-        "Select or type a city:",
-        options=list(city_data.keys()),
-        index=0,
-        key="city_select"
+    city_input = st.text_input(
+        "Enter a city name:",
+        value="London",
+        key="city_input"
     )
 
-    # Display weather info
-    if 'weather_data' in st.session_state:
+    if st.button("Locate") or 'city_input' in st.session_state:
+        with st.spinner(f"Searching for {city_input}..."):
+            city_info = get_city_coordinates(city_input)
+            if city_info:
+                st.session_state.city_data = {
+                    city_input: {
+                        "lat": city_info['lat'],
+                        "lon": city_info['lon'],
+                        "display_name": city_info['display_name']
+                    }
+                }
+                st.session_state.selected_city = city_input
+
+                # Get weather data
+                weather_data, weather_icon = get_weather_data(
+                    city_info['lat'],
+                    city_info['lon']
+                )
+
+                if weather_data:
+                    st.session_state.weather_data = weather_data
+                    st.session_state.weather_icon = weather_icon
+                    st.rerun()
+
+    # Display weather info if available
+    if 'weather_data' in st.session_state and 'selected_city' in st.session_state:
         data = st.session_state.weather_data
         st.subheader(f"Weather in {st.session_state.selected_city}")
+
+        if 'display_name' in st.session_state.city_data.get(st.session_state.selected_city, {}):
+            st.caption(st.session_state.city_data[st.session_state.selected_city]['display_name'])
 
         col_a, col_b = st.columns([1, 2])
         with col_a:
@@ -65,17 +134,26 @@ with col1:
         st.caption(f"Coordinates: {data['coord']['lat']:.2f}° N, {data['coord']['lon']:.2f}° E")
 
 with col2:
-    # Get coordinates for selected city
-    selected_city = st.session_state.city_select
-    city_lat = city_data[selected_city]["lat"]
-    city_lon = city_data[selected_city]["lon"]
+    # Initialize city_data in session state if not exists
+    if 'city_data' not in st.session_state:
+        st.session_state.city_data = {
+            "London": {"lat": 51.5074, "lon": -0.1278}
+        }
 
-    # Convert lat/lon to Three.js coordinates
-    phi = (90 - city_lat) * (math.pi / 180)
-    theta = (city_lon + 180) * (math.pi / 180)
+    # Get selected city (default to London if none selected)
+    selected_city = st.session_state.get('selected_city', "London")
+    city_info = st.session_state.city_data.get(selected_city)
 
-    # HTML/JavaScript for the 3D globe
-    threejs_html = f"""
+    if city_info:
+        city_lat = city_info["lat"]
+        city_lon = city_info["lon"]
+
+        # Convert lat/lon to Three.js coordinates
+        phi = (90 - city_lat) * (math.pi / 180)
+        theta = (city_lon + 180) * (math.pi / 180)
+
+        # HTML/JavaScript for the 3D globe
+        threejs_html = f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -190,10 +268,10 @@ with col2:
             const markerGeometry = new THREE.SphereGeometry(0.03, 16, 16);
             const markerMaterial = new THREE.MeshBasicMaterial({{ color: 0xff0000 }});
             const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-            
+
             // Position marker for selected city
-            const lat = {city_lat}
-            const lon = {city_lon}
+            const lat = {city_lat};
+            const lon = {city_lon};
             const phi = (90 - lat) * (Math.PI / 180);
             const theta = (lon + 180) * (Math.PI / 180);
 
@@ -232,32 +310,6 @@ with col2:
     </div>
 </body>
 </html>
-    """
-
-    # Display the globe
-    components.html(threejs_html, height=600)
-
-# Get weather data when city changes
-if 'selected_city' not in st.session_state or st.session_state.selected_city != st.session_state.city_select:
-    st.session_state.selected_city = st.session_state.city_select
-    city = st.session_state.city_select
-    lat = city_data[city]["lat"]
-    lon = city_data[city]["lon"]
-
-    try:
-        # Get weather data
-        url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}"
-        response = requests.get(url)
-        response.raise_for_status()
-        st.session_state.weather_data = response.json()
-
-        # Get weather icon
-        icon_id = st.session_state.weather_data['weather'][0]['icon']
-        icon_url = f"http://openweathermap.org/img/wn/{icon_id}@2x.png"
-        st.session_state.weather_icon = Image.open(BytesIO(requests.get(icon_url).content))
-
-        # Force rerun to update display
-        st.rerun()
-
-    except Exception as e:
-        st.error(f"Error fetching weather data: {str(e)}")
+        """
+        # Display the globe
+        components.html(threejs_html, height=600)
