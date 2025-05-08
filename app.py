@@ -1,7 +1,8 @@
 import requests
+import streamlit as st
 
 API_KEY = "5dc93fe1be4655d1693091ba3dc6c853"  # Replace with your OpenWeatherMap API key
-CITY = "London"
+CITY = "Plovdiv"
 URL = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}"
 
 try:
@@ -13,6 +14,9 @@ try:
     temp_kelvin = data['main']['temp']
     temp_celsius = temp_kelvin - 273.15
 
+    st.title("Weather App")
+    st.text(f"City: {city_name}")
+    st.text(f"Temperature: {temp_celsius:.2f}°C")
     print(f"City: {city_name}")
     print(f"Temperature: {temp_celsius:.2f}°C")
 except requests.exceptions.RequestException as e:
