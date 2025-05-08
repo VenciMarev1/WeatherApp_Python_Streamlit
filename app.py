@@ -3,6 +3,7 @@ import requests
 from PIL import Image
 from io import BytesIO
 import streamlit.components.v1 as components
+import math
 import json
 
 # Page setup
@@ -70,8 +71,8 @@ with col2:
     city_lon = city_data[selected_city]["lon"]
 
     # Convert lat/lon to Three.js coordinates
-    phi = (90 - city_lat) * (Math.PI / 180)
-    theta = (city_lon + 180) * (Math.PI / 180)
+    phi = (90 - city_lat) * (math.PI / 180)
+    theta = (city_lon + 180) * (math.PI / 180)
 
     # HTML/JavaScript for the 3D globe
     threejs_html = f"""
@@ -251,7 +252,7 @@ if 'selected_city' not in st.session_state or st.session_state.selected_city != 
         # Get weather icon
         icon_id = st.session_state.weather_data['weather'][0]['icon']
         icon_url = f"http://openweathermap.org/img/wn/{icon_id}@2x.png"
-        st.session_state.weather_icon = Image.open(BytesIO(requests.get(icon_url).content)
+        st.session_state.weather_icon = Image.open(BytesIO(requests.get(icon_url).content))
 
         # Force rerun to update display
         st.rerun()
