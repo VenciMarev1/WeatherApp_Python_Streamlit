@@ -133,8 +133,8 @@ with col2:
     constraints.city_lon = city_data[selected_city]["lon"]
 
     # Convert lat/lon to Three.js coordinates
-    phi = (90 - city_lat) * (math.pi / 180)
-    theta = (city_lon + 180) * (math.pi / 180)
+    phi = (90 - constraints.city_lat) * (math.pi / 180)
+    theta = (constraints.city_lon + 180) * (math.pi / 180)
 
     # HTML/JavaScript for the 3D globe
     threejs_html = globeHtml
