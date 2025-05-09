@@ -4,6 +4,8 @@ from PIL import Image
 from io import BytesIO
 import streamlit.components.v1 as components
 import math
+
+import constraints
 from constraints import *
 import json
 
@@ -127,8 +129,8 @@ with col1:
 with col2:
     # Get coordinates for selected city
     selected_city = st.session_state.city_select
-    city_lat = city_data[selected_city]["lat"]
-    city_lon = city_data[selected_city]["lon"]
+    constraints.city_lat = city_data[selected_city]["lat"]
+    constraints.city_lon = city_data[selected_city]["lon"]
 
     # Convert lat/lon to Three.js coordinates
     phi = (90 - city_lat) * (math.pi / 180)
