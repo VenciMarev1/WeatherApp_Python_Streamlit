@@ -1,4 +1,6 @@
-from app import selected_city, city_lat, city_lon
+selected_city = ""
+city_lat = ""
+city_lon = ""
 
 
 

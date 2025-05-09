@@ -4,7 +4,7 @@ from PIL import Image
 from io import BytesIO
 import streamlit.components.v1 as components
 import math
-from constraints import globeHtml
+from constraints import *
 import json
 
 # Page setup
