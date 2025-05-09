@@ -274,7 +274,7 @@ with col2:
                 earth.rotation.y += 0.001;
                 clouds.rotation.y += 0.0015;
                 controls.update();
-                renderer.render(scene, camera);
+                renderer.render(scene);
                 // Point camera at the marker
                 camera.lookAt(marker.position);
             }}
