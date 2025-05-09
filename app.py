@@ -137,7 +137,7 @@ with col2:
     theta = (constraints.city_lon + 180) * (math.pi / 180)
 
     # HTML/JavaScript for the 3D globe
-    threejs_html = globeHtml
+    threejs_html = constraints.globeHtml
 
     # Display the globe
     components.html(threejs_html, height=600)
