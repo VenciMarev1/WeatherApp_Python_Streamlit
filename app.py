@@ -275,6 +275,8 @@ with col2:
                 clouds.rotation.y += 0.0015;
                 controls.update();
                 renderer.render(scene, camera);
+                // Point camera at the marker
+                camera.lookAt(marker.position);
             }}
 
             // Handle resize
